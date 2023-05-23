@@ -34,7 +34,10 @@ type dramTransactionCountTracer struct {
 	tracer *dramTracer
 	dram   TraceableComponent
 }
-
+type pmcTransactionCountTracer struct {
+	tracer *pmcTracer
+	pmc    TraceableComponent
+}
 type rdmaTransactionCountTracer struct {
 	outgoingTracer *tracing.AverageTimeTracer
 	incomingTracer *tracing.AverageTimeTracer
@@ -324,7 +327,23 @@ func (r *Runner) addDRAMTracer() {
 		}
 	}
 }
+func (r *Runner) addPMCTracer() {
+	if !r.ReportPMCTransactionCount {
+		return
+	}
 
+	for _, gpu := range r.platform.GPUs {
+		for _, pmc := range gpu.MemControllers {
+			t := pmcTransactionCountTracer{}
+			t.pmc = pmc.(TraceableComponent)
+			t.tracer = newpmcTracer()
+
+			tracing.CollectTrace(t.pmc, t.tracer)
+
+			r.pmcTracers = append(r.pmcTracers, t)
+		}
+	}
+}
 func (r *Runner) addSIMDBusyTimeTracer() {
 	if !r.ReportSIMDBusyTime {
 		return
@@ -362,22 +381,30 @@ func (r *Runner) reportStats() {
 
 func (r *Runner) reportInstCount() {
 	kernelTime := float64(r.kernelTimeCounter.BusyTime())
+	totalTracerCount := uint64(0)
+	totalCuIpc := float64(0)
 	for _, t := range r.instCountTracers {
+
 		cuFreq := float64(t.cu.(*cu.ComputeUnit).Freq)
 		numCycle := kernelTime * cuFreq
 
 		r.metricsCollector.Collect(
 			t.cu.Name(), "cu_inst_count", float64(t.tracer.count))
-
+		transIPC := float64(t.tracer.count) / numCycle
+		r.metricsCollector.Collect(
+			t.cu.Name(), "cu_IPC", transIPC)
+		totalTracerCount += t.tracer.count
+		totalCuIpc += transIPC
 		r.metricsCollector.Collect(
 			t.cu.Name(), "cu_CPI", numCycle/float64(t.tracer.count))
-
 		r.metricsCollector.Collect(
 			t.cu.Name(), "simd_inst_count", float64(t.tracer.simdCount))
-
 		r.metricsCollector.Collect(
 			t.cu.Name(), "simd_CPI", numCycle/float64(t.tracer.simdCount))
+		r.metricsCollector.Collect(
+			t.cu.Name(), "simd_IPC", float64(t.tracer.simdCount)/numCycle)
 	}
+	r.metricsCollector.Collect("CU", "total_CU_IPC", float64(totalCuIpc)/64)
 }
 
 func (r *Runner) reportCPIStack() {
@@ -426,7 +453,6 @@ func (r *Runner) reportCacheLatency() {
 		if tracer.tracer.AverageTime() == 0 {
 			continue
 		}
-
 		r.metricsCollector.Collect(
 			tracer.cache.Name(),
 			"req_average_latency",
@@ -454,7 +480,13 @@ func (r *Runner) reportCacheHitRate() {
 		r.metricsCollector.Collect(
 			tracer.cache.Name(), "read-hit", float64(readHit))
 		r.metricsCollector.Collect(
+			tracer.cache.Name(), "read-hit-ratio", float64(readHit)/float64(totalTransaction))
+		r.metricsCollector.Collect(
+			tracer.cache.Name(), "writeMSHR-hit-ratio", float64(writeMSHRHit)/float64(totalTransaction))
+		r.metricsCollector.Collect(
 			tracer.cache.Name(), "read-miss", float64(readMiss))
+		r.metricsCollector.Collect(
+			tracer.cache.Name(), "read-miss-ratio", float64(readMiss)/float64(totalTransaction))
 		r.metricsCollector.Collect(
 			tracer.cache.Name(), "read-mshr-hit", float64(readMSHRHit))
 		r.metricsCollector.Collect(
@@ -477,18 +509,24 @@ func (r *Runner) reportTLBHitRate() {
 		if totalTransaction == 0 {
 			continue
 		}
-
+		r.metricsCollector.Collect("Total TLB(hit/miss/mshrHit)", "Transactions", float64(totalTransaction))
 		r.metricsCollector.Collect(
 			tracer.tlb.Name(), "hit", float64(hit))
 		r.metricsCollector.Collect(
+			tracer.tlb.Name(), "hit-ratio", float64(hit)/float64(totalTransaction))
+		r.metricsCollector.Collect(
 			tracer.tlb.Name(), "miss", float64(miss))
+		r.metricsCollector.Collect(tracer.tlb.Name(), "miss-ratio", float64(miss)/float64(totalTransaction))
 		r.metricsCollector.Collect(
 			tracer.tlb.Name(), "mshr-hit", float64(mshrHit))
+		r.metricsCollector.Collect(
+			tracer.tlb.Name(), "mshrHit-ratio", float64(mshrHit)/float64(totalTransaction))
 	}
 }
 
 func (r *Runner) reportRDMATransactionCount() {
 	for _, t := range r.rdmaTransactionCounters {
+		totalTransaction := t.outgoingTracer.TotalCount() + t.incomingTracer.TotalCount()
 		r.metricsCollector.Collect(
 			t.rdmaEngine.Name(),
 			"outgoing_trans_count",
@@ -499,11 +537,27 @@ func (r *Runner) reportRDMATransactionCount() {
 			"incoming_trans_count",
 			float64(t.incomingTracer.TotalCount()),
 		)
+		r.metricsCollector.Collect(
+			t.rdmaEngine.Name(),
+			"total_transaction",
+			float64(totalTransaction),
+		)
+		r.metricsCollector.Collect(
+			t.rdmaEngine.Name(),
+			"incoming_trans_ratio",
+			float64(t.incomingTracer.TotalCount()/totalTransaction),
+		)
+		r.metricsCollector.Collect(
+			t.rdmaEngine.Name(),
+			"outgoing_trans_ratio",
+			float64(t.outgoingTracer.TotalCount()/totalTransaction),
+		)
 	}
 }
 
 func (r *Runner) reportDRAMTransactionCount() {
 	for _, t := range r.dramTracers {
+		totalCount := float64(t.tracer.readCount + t.tracer.writeCount)
 		r.metricsCollector.Collect(
 			t.dram.Name(),
 			"read_trans_count",
@@ -534,9 +588,63 @@ func (r *Runner) reportDRAMTransactionCount() {
 			"write_size",
 			float64(t.tracer.writeSize),
 		)
+		r.metricsCollector.Collect(
+			t.dram.Name(),
+			"read_trans_ratio",
+			float64(t.tracer.readCount)/totalCount,
+		)
+		r.metricsCollector.Collect(
+			t.dram.Name(),
+			"write_trans_ratio",
+			float64(t.tracer.writeCount)/totalCount,
+		)
 	}
 }
-
+func (r *Runner) reportPMCTransactionCount() {
+	for _, t := range r.pmcTracers {
+		totalCount := float64(t.tracer.readCount + t.tracer.writeCount)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"read_trans_count",
+			float64(t.tracer.readCount),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"write_trans_count",
+			float64(t.tracer.writeCount),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"read_avg_latency",
+			float64(t.tracer.readAvgLatency),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"write_avg_latency",
+			float64(t.tracer.writeAvgLatency),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"read_size",
+			float64(t.tracer.readSize),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"write_size",
+			float64(t.tracer.writeSize),
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"read_trans_ratio",
+			float64(t.tracer.readCount)/totalCount,
+		)
+		r.metricsCollector.Collect(
+			t.pmc.Name(),
+			"write_trans_ratio",
+			float64(t.tracer.writeCount)/totalCount,
+		)
+	}
+}
 func (r *Runner) dumpMetrics() {
 	r.metricsCollector.Dump(*filenameFlag)
 }

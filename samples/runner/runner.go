@@ -36,6 +36,7 @@ type Runner struct {
 	tlbHitRateTracers       []tlbHitRateTracer
 	rdmaTransactionCounters []rdmaTransactionCountTracer
 	dramTracers             []dramTransactionCountTracer
+	pmcTracers              []pmcTransactionCountTracer
 	benchmarks              []benchmarks.Benchmark
 	monitor                 *monitoring.Monitor
 	metricsCollector        *collector
@@ -51,6 +52,7 @@ type Runner struct {
 	ReportTLBHitRate           bool
 	ReportRDMATransactionCount bool
 	ReportDRAMTransactionCount bool
+	ReportPMCTransactionCount  bool
 	UseUnifiedMemory           bool
 	ReportSIMDBusyTime         bool
 	ReportCPIStack             bool
