@@ -1,6 +1,7 @@
 package cu
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 
@@ -632,6 +633,7 @@ func (cu *ComputeUnit) logInstTask(
 }
 
 func (cu *ComputeUnit) execUnitToString(u insts.ExeUnit) string {
+	fmt.Println(u)
 	switch u {
 	case insts.ExeUnitVALU:
 		return "VALU"

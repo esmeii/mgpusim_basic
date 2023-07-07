@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/tebeka/atexit"
 	"gitlab.com/akita/akita/v3/sim"
@@ -137,6 +138,24 @@ func (h *ISADebugger) logWholeWf(
 	output += fmt.Sprintf("}")
 
 	h.Logger.Print(output)
+	//it doesn't printed
+	f, err := os.OpenFile("./instDebugger.log", os.O_APPEND|os.O_RDWR, 0755)
+	if err != nil {
+		// Handle the error, such as creating the file if it doesn't exist
+		if os.IsNotExist(err) {
+			f, err = os.Create("instDebugger.log")
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	defer f.Close()
+	fmt.Fprintln(f, "\n\n")
+	fmt.Fprintf(f, "[inst Name]=", inst.InstName, " ", inst.Format.FormatName, "\n")
+
 }
 
 func (h *ISADebugger) getVRegValue(

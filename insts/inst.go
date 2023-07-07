@@ -91,6 +91,7 @@ func NewInst() *Inst {
 	i := new(Inst)
 	i.Format = new(Format)
 	i.InstType = new(InstType)
+
 	return i
 }
 
@@ -99,6 +100,7 @@ func (i Inst) sop2String() string {
 		i.Dst.String() + ", " +
 		i.Src0.String() + ", " +
 		i.Src1.String()
+
 }
 
 func (i Inst) vop1String() string {

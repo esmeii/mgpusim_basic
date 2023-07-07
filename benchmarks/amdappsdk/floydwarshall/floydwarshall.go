@@ -226,3 +226,6 @@ func (b *Benchmark) Verify() {
 
 	log.Printf("Passed!\n")
 }
+func (b *Benchmark) Print() {
+	fmt.Println(b.kernel)
+}

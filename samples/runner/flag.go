@@ -44,7 +44,7 @@ var customPortForAkitaRTM = flag.Int("akitartm-port", 0,
 	`Custom port to host AkitaRTM. A 4-digit or 5-digit port number is required. If 
 this number is not given or a invalid number is given number, a random port 
 will be used.`)
-
+var instPrinting = flag.Bool("print-inst", false, "Print out instructions")
 var visTracing = flag.Bool("trace-vis", false,
 	"Generate trace for visualization purposes.")
 var visTracerDB = flag.String("trace-vis-db", "sqlite",
@@ -114,7 +114,10 @@ func (r *Runner) ParseFlag() *Runner {
 	if *reportCPIStackFlag {
 		r.ReportCPIStack = true
 	}
-
+	//EUN
+	if *instPrinting {
+		r.PrintInstruction = true
+	}
 	if *reportAll {
 		r.ReportInstCount = true
 		r.ReportCacheLatency = true
@@ -124,7 +127,6 @@ func (r *Runner) ParseFlag() *Runner {
 		r.ReportDRAMTransactionCount = true
 		r.ReportRDMATransactionCount = true
 		r.ReportCPIStack = true
-		r.ReportPMCTransactionCount = true
 	}
 
 	return r

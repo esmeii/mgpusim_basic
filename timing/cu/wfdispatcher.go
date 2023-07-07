@@ -1,7 +1,9 @@
 package cu
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"gitlab.com/akita/akita/v3/sim"
 	"gitlab.com/akita/mgpusim/v3/insts"
@@ -42,6 +44,25 @@ func (d *WfDispatcherImpl) DispatchWf(
 ) {
 	d.setWfInfo(wf, location)
 	d.initRegisters(wf)
+	//EUN: print wavefront info
+	f, err := os.OpenFile("./wavefront.log", os.O_APPEND|os.O_RDWR, 0755)
+	if err != nil {
+		// Handle the error, such as creating the file if it doesn't exist
+		if os.IsNotExist(err) {
+			f, err = os.Create("rdma.log")
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	defer f.Close()
+	fmt.Fprintln(f, "\n[Wavefront Info]\n")
+	fmt.Fprintf(f, "[PC]=", wf.PC, " ", "[SIMD ID]", wf.SIMDID, "\n")
+	fmt.Printf("[PC]%d\n", wf.Inst().PC)
+
 }
 
 func (d *WfDispatcherImpl) setWfInfo(
@@ -54,6 +75,7 @@ func (d *WfDispatcherImpl) setWfInfo(
 	wf.LDSOffset = location.LDSOffset
 	wf.PC = wf.Packet.KernelObject + wf.CodeObject.KernelCodeEntryByteOffset
 	wf.EXEC = wf.InitExecMask
+
 }
 
 //nolint:gocyclo,funlen

@@ -181,6 +181,7 @@ func (u *VectorMemoryUnit) executeFlatLoad(
 		}
 
 		lowModule := u.cu.VectorMemModules.Find(t.Read.Address)
+
 		t.Read.Dst = lowModule
 		t.Read.Src = u.cu.ToVectorMem
 		t.Read.PID = wave.PID()
@@ -251,7 +252,6 @@ func (u *VectorMemoryUnit) sendRequest(now sim.VTimeInSec) bool {
 		u.numTransactionInFlight--
 
 		tracing.TraceReqInitiate(req, u.cu, info.Inst.ID)
-
 		return true
 	}
 

@@ -6,5 +6,6 @@ type Benchmark interface {
 	SelectGPU(gpuIDs []int)
 	Run()
 	Verify()
+	//Print()
 	SetUnifiedMemory()
 }

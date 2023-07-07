@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"fmt"
 	"sync"
 
 	"gitlab.com/akita/akita/v3/sim"
@@ -55,6 +56,7 @@ func (t *pmcTracer) EndTask(task tracing.Task) {
 	if t.readCount != 0 && t.writeCount != 0 {
 		switch originalTask.What {
 		case "*mem.ReadReq":
+			fmt.Println("pmc TRACER is called [case_read]")
 			t.readAvgLatency = sim.VTimeInSec(
 				(float64(t.readAvgLatency)*float64(t.readCount) +
 					float64(taskTime)) / float64(t.readCount+1))

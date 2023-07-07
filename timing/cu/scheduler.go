@@ -67,6 +67,7 @@ func (s *SchedulerImpl) Run(now sim.VTimeInSec) bool {
 		madeProgress = s.DoFetch(now) || madeProgress
 	}
 	if !madeProgress {
+
 		s.cyclesNoProgress++
 	} else {
 		s.cyclesNoProgress = 0
@@ -187,10 +188,19 @@ func (s *SchedulerImpl) DoIssue(now sim.VTimeInSec) bool {
 				madeProgress = true
 			}
 		}
+		//s.printWorkingWfs(wfs)
 	}
 	return madeProgress
 }
 
+//func (s *SchedulerImpl) printWorkingWfs(wg []*wavefront.Wavefront) {
+//	for _, wf := range wg {
+//		if wf.State == wavefront.WfRunning {
+//			fmt.Printf("%d\t%s\n", wf.PC, wf.Inst().Addr.String())
+//
+//		}
+//	}
+//}
 func (s *SchedulerImpl) issueToInternal(wf *wavefront.Wavefront, now sim.VTimeInSec) bool {
 	wf.SetDynamicInst(wf.InstToIssue)
 	wf.InstToIssue = nil

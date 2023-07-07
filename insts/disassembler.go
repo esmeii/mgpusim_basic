@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"sort"
 	"strings"
 )
@@ -692,6 +693,15 @@ func (d *Disassembler) combineDSOffsets(inst *Inst) {
 		// do nothing
 	}
 }
+func (d *Disassembler) printInst(inst *Inst) {
+	f, err := os.Create("inst.csv")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	fmt.Fprintf(f, "[PC]=%d\t[InstName]=%s\t[Operand]=%d\t[Dst]=%s\n", inst.PC, inst.InstName, inst.Addr.OperandType, inst.Src0.String(), inst.Dst.String())
+}
 
 // Decode parses the head of the buffer and returns the next instruction
 //nolint:gocyclo,funlen
@@ -802,6 +812,7 @@ func (d *Disassembler) Disassemble(
 			buf = buf[inst.ByteSize:]
 			pc += uint64(inst.ByteSize)
 		}
+		d.printInst(inst)
 	}
 }
 

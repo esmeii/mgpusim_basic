@@ -1,10 +1,9 @@
 package cu
 
 import (
-	"log"
-
 	"gitlab.com/akita/akita/v3/sim"
 	"gitlab.com/akita/mgpusim/v3/timing/wavefront"
+	"log"
 )
 
 // A DecodeUnit is any type of decode unit that takes one cycle to decode
@@ -53,8 +52,8 @@ func (du *DecodeUnit) AcceptWave(
 	if du.toDecode != nil {
 		log.Panicf("Decode unit busy, please run CanAcceptWave before accepting a wave")
 	}
-
 	du.toDecode = wave
+
 	du.decoded = false
 }
 

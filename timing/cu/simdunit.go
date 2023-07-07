@@ -67,6 +67,7 @@ func (u *SIMDUnit) AcceptWave(wave *wavefront.Wavefront, now sim.VTimeInSec) {
 // Run executes three pipeline stages that are controlled by the SIMDUnit
 func (u *SIMDUnit) Run(now sim.VTimeInSec) bool {
 	madeProgress := u.runExecStage(now)
+
 	return madeProgress
 }
 
@@ -82,6 +83,7 @@ func (u *SIMDUnit) runExecStage(now sim.VTimeInSec) bool {
 
 	u.scratchpadPreparer.Prepare(u.toExec, u.toExec)
 	u.alu.Run(u.toExec)
+
 	u.scratchpadPreparer.Commit(u.toExec, u.toExec)
 	u.cu.UpdatePCAndSetReady(u.toExec)
 
@@ -102,6 +104,7 @@ func (u *SIMDUnit) logPipelineTask(
 	inst *wavefront.Inst,
 	completed bool,
 ) {
+
 	if completed {
 		tracing.EndTask(
 			inst.ID+"_simd_exec",

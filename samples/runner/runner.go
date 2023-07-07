@@ -56,6 +56,8 @@ type Runner struct {
 	UseUnifiedMemory           bool
 	ReportSIMDBusyTime         bool
 	ReportCPIStack             bool
+	//EUN
+	PrintInstruction bool
 
 	GPUIDs []int
 }

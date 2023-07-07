@@ -107,7 +107,6 @@ func (r *Runner) addInstCountTracer() {
 		}
 	}
 }
-
 func (r *Runner) addCUCPIHook() {
 	if !r.ReportCPIStack {
 		return
@@ -406,7 +405,8 @@ func (r *Runner) reportInstCount() {
 	}
 	r.metricsCollector.Collect("CU", "total_CU_IPC", float64(totalCuIpc)/64)
 }
-
+func (r *Runner) printInst() {
+}
 func (r *Runner) reportCPIStack() {
 	for _, t := range r.cuCPITraces {
 		cu := t.cu
@@ -462,6 +462,7 @@ func (r *Runner) reportCacheLatency() {
 }
 
 func (r *Runner) reportCacheHitRate() {
+	multiTotalTransaction := uint64(0)
 	for _, tracer := range r.cacheHitRateTracers {
 		readHit := tracer.tracer.GetStepCount("read-hit")
 		readMiss := tracer.tracer.GetStepCount("read-miss")
@@ -472,7 +473,7 @@ func (r *Runner) reportCacheHitRate() {
 
 		totalTransaction := readHit + readMiss + readMSHRHit +
 			writeHit + writeMiss + writeMSHRHit
-
+		multiTotalTransaction = totalTransaction + multiTotalTransaction
 		if totalTransaction == 0 {
 			continue
 		}
@@ -492,10 +493,16 @@ func (r *Runner) reportCacheHitRate() {
 		r.metricsCollector.Collect(
 			tracer.cache.Name(), "write-hit", float64(writeHit))
 		r.metricsCollector.Collect(
+			tracer.cache.Name(), "write-hit-ratio", float64(writeHit)/float64(totalTransaction))
+		r.metricsCollector.Collect(
 			tracer.cache.Name(), "write-miss", float64(writeMiss))
 		r.metricsCollector.Collect(
 			tracer.cache.Name(), "write-mshr-hit", float64(writeMSHRHit))
+		r.metricsCollector.Collect(
+			tracer.cache.Name(), "total transaction", float64(totalTransaction))
 	}
+	r.metricsCollector.Collect(
+		"GPU", "total transaction", float64(multiTotalTransaction))
 }
 
 func (r *Runner) reportTLBHitRate() {

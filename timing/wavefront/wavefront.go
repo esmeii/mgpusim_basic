@@ -74,6 +74,7 @@ func (wf *Wavefront) Inst() *insts.Inst {
 	if wf.inst == nil {
 		return nil
 	}
+
 	return wf.inst.Inst
 }
 

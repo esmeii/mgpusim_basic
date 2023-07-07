@@ -117,6 +117,7 @@ func (p *CommandProcessor) sendMsgsOutFromPort(
 	now sim.VTimeInSec,
 	sender sim.BufferedSender,
 ) (madeProgress bool) {
+
 	for {
 		ok := sender.Tick(now)
 		if ok {
